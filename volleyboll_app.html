@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volleyboll Poängräknare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        .container {
+            max-width: 900px;
+        }
+        /* Custom scrollbar for aesthetics */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 
+        INBÄDDNINGSINSTRUKTIONER FÖR GOOGLE SITE: 
+        1. Ladda upp denna HTML-fil till en publik webbadress (t.ex. din egen server, GitHub Pages, eller en publik Google Drive-länk).
+        2. Kopiera den PUBLIKA URL:en.
+        3. På din Google Site, välj "Bädda in" (Embed) och klistra in följande HTML:
+        
+        <iframe src="DIN_PUBLIKA_URL_HÄR" 
+                width="950" 
+                height="1200" 
+                frameborder="0" 
+                allowfullscreen 
+                style="border:none;">
+        </iframe>
+    -->
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-blue-800 mb-2">Volleybollturnering: Poängsystem</h1>
+            <p class="text-gray-600">Sekretariatets verktyg för snabb sammanställning.</p>
+            <div id="user-info" class="text-xs text-gray-500 mt-2 p-1 bg-gray-100 rounded-lg inline-block">
+                Användar-ID: Laddar...
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Vänster: Lägg till lag -->
+            <section class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-min">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">1. Lägg till lag</h2>
+                <form id="add-team-form" class="space-y-4">
+                    <input type="text" id="team-name" placeholder="Lagets namn (t.ex. 'Tigers')" required
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <button type="submit"
+                            class="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 transition duration-150 shadow-md">
+                        Lägg till lag
+                    </button>
+                </form>
+                
+                <h3 class="text-xl font-medium text-gray-700 mt-6 mb-3 border-t pt-4">Registrerade lag</h3>
+                <div id="team-list" class="max-h-40 overflow-y-auto custom-scroll space-y-2">
+                    <!-- Laglistan fylls i här -->
+                    <p class="text-sm text-gray-500 p-2 bg-gray-50 rounded-md">Inga lag tillagda.</p>
+                </div>
+                
+            </section>
+
+            <!-- Mitten: Poänginmatning -->
+            <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-6">2. Rapportera Matchresultat</h2>
+
+                <form id="score-submission-form" class="space-y-6">
+                    <!-- Matchdeltagare -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lag 1 (Hemmalag)</label>
+                            <select id="team-a-select" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Välj Lag 1</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lag 2 (Bortalag)</label>
+                            <select id="team-b-select" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Välj Lag 2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Matchresultat (10p Vinst / 5p Oavgjort / 0p Förlust) -->
+                    <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <label class="block text-lg font-bold text-yellow-800 mb-4">Matchresultat (Vinst: 10p, Oavgjort: 5p, Förlust: 0p)</label>
+                        <fieldset id="match-result-fieldset" class="flex flex-col space-y-2">
+                            <!-- Lag A vinner -->
+                            <label class="inline-flex items-center p-2 rounded-lg bg-yellow-100/50 hover:bg-yellow-100">
+                                <input type="radio" name="match_result" value="teamA_win" required class="form-radio text-yellow-600">
+                                <span class="ml-3 font-semibold text-yellow-800">Lag 1 (<span id="match-teamA-name"></span>) vinner (10p)</span>
+                            </label>
+                            
+                            <!-- Oavgjort -->
+                            <label class="inline-flex items-center p-2 rounded-lg bg-yellow-100/50 hover:bg-yellow-100">
+                                <input type="radio" name="match_result" value="draw" required class="form-radio text-yellow-600">
+                                <span class="ml-3 font-semibold text-yellow-800">Oavgjort (Båda får 5p)</span>
+                            </label>
+
+                            <!-- Lag B vinner -->
+                            <label class="inline-flex items-center p-2 rounded-lg bg-yellow-100/50 hover:bg-yellow-100">
+                                <input type="radio" name="match_result" value="teamB_win" required class="form-radio text-yellow-600">
+                                <span class="ml-3 font-semibold text-yellow-800">Lag 2 (<span id="match-teamB-name"></span>) vinner (10p)</span>
+                            </label>
+                        </fieldset>
+                    </div>
+
+                    <!-- Extra Poäng (Hejarramsor, Laganda, Tifo, Utklädnad) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+                        <div id="team-a-extras" class="space-y-4">
+                            <h4 class="font-bold text-lg text-blue-600">Poäng Lag 1: <span id="team-a-name-display"></span></h4>
+
+                            <!-- Hejarramsor (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Hejarramsor (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_cheer" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_cheer" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <!-- Laganda (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Laganda (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_spirit" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_spirit" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+                            
+                            <!-- Tifo/Plakat (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Tifo (Plakat) (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_tifo" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_tifo" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+                            
+                            <!-- Utklädnad (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Utklädnad (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_costume" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </labeL>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamA_costume" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                        </div>
+                        
+                        <div id="team-b-extras" class="space-y-4">
+                            <h4 class="font-bold text-lg text-blue-600">Poäng Lag 2: <span id="team-b-name-display"></span></h4>
+
+                            <!-- Hejarramsor (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Hejarramsor (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_cheer" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_cheer" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </d iv>
+                            </fieldset>
+
+                            <!-- Laganda (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Laganda (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_spirit" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_spirit" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <!-- Tifo/Plakat (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Tifo (Plakat) (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_tifo" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_tifo" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <!-- Utklädnad (10p/0p) -->
+                            <fieldset>
+                                <legend class="text-sm font-medium text-gray-700 mb-2">Utklädnad (10p/0p)</legend>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_costume" value="10" required class="form-radio text-blue-600">
+                                        <span class="ml-2">10 poäng</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="teamB_costume" value="0" class="form-radio text-blue-600">
+                                        <span class="ml-2">0 poäng</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submit-score-btn"
+                            class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-xl hover:bg-blue-700 transition duration-150 shadow-lg">
+                        Rapportera matchresultat
+                    </button>
+                    <p id="submission-message" class="text-center text-sm hidden"></p>
+                </form>
+            </section>
+            
+            <!-- Höger: Poängtavla -->
+            <section class="lg:col-span-3 bg-white p-6 rounded-xl shadow-lg mt-8">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex justify-between items-center">
+                    3. Poängtavla (Vinnaren koras här!)
+                    <span id="loading-indicator" class="text-sm text-red-500 hidden">Laddar poäng...</span>
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">#</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lag</th>
+                                <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Vinst (10p)</th>
+                                <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hejarramsor (10p)</th>
+                                <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Laganda (10p)</th>
+                                <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tifo (10p)</th>
+                                <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Utklädnad (10p)</th>
+                                <th class="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider rounded-tr-lg">TOTALT (P)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoreboard-body" class="bg-white divide-y divide-gray-200">
+                            <tr><td colspan="8" class="p-4 text-center text-gray-500">Vänta på att systemet ska ansluta.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <p id="toast-message" class="fixed bottom-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-xl hidden transition-opacity duration-300">Meddelande här</p>
+            </section>
+            
+        </main>
+    </div>
+    
+    <!-- Firebase Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, onSnapshot, collection, query, writeBatch, deleteDoc, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        const TEAMS_PATH = `artifacts/${appId}/public/data/teams`;
+        const SCORES_PATH = `artifacts/${appId}/public/data/scores`;
+        
+        // FÖRREGISTERADE LAG (Ek25a 1, Ek25b 1, Ek25c 1, Ek25d 1, Ek25e 1, Ek25a 2, Ek25b 2, Ek25c 2, Ek25d 2, EK25e 2)
+        const initialTeams = [
+            "Ek25a 1", "Ek25b 1", "Ek25c 1", "Ek25d 1", "Ek25e 1", 
+            "Ek25a 2", "Ek25b 2", "Ek25c 2", "Ek25d 2", "EK25e 2"
+        ];
+
+
+        // Utility: Display temporary toast message
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = message;
+            toast.classList.remove('bg-green-500', 'bg-red-500', 'hidden', 'opacity-0', 'scale-95');
+            toast.classList.add('opacity-100', 'scale-100', 'flex', 'items-center', 'justify-center');
+            
+            if (type === 'error') {
+                toast.classList.add('bg-red-500');
+                toast.classList.remove('bg-green-500');
+            } else {
+                toast.classList.add('bg-green-500');
+                toast.classList.remove('bg-red-500');
+            }
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'scale-100');
+                toast.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300); 
+            }, 3000);
+        }
+
+        // --- 1. Firebase Setup and Authentication ---
+        async function setupFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.warn("Firebase konfiguration saknas. Använder standardvärden.");
+                }
+
+                // setLogLevel('Debug'); // Uncomment for debugging
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                document.getElementById('loading-indicator').textContent = 'Ansluter...';
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-info').textContent = `Användar-ID: ${userId.substring(0, 8)}...`;
+                        isAuthReady = true;
+
+                        // 1. Check and initialize teams (only runs if team collection is empty)
+                        await checkAndInitializeTeams();
+
+                        // 2. Start real-time listeners
+                        listenForTeams();
+                        listenForScores();
+
+                    } else {
+                        // Attempt to sign in
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            // Fallback to anonymous sign-in if no token is provided
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase setup error:", error);
+                document.getElementById('loading-indicator').textContent = 'FEL: Kan inte ansluta till databasen.';
+                showToast(`Fel vid start: ${error.message}`, 'error');
+            }
+        }
+        
+        // Funktion för att lägga till förinställda lag om databasen är tom
+        async function checkAndInitializeTeams() {
+            if (!db || !isAuthReady) return;
+
+            try {
+                const teamsCollectionRef = collection(db, TEAMS_PATH);
+                const snapshot = await getDocs(teamsCollectionRef);
+
+                if (snapshot.empty) {
+                    console.log("Team collection is empty. Initializing with predefined teams.");
+                    const batch = writeBatch(db);
+                    const timestamp = new Date();
+
+                    // Sortera de initiala lagen innan de läggs till för att få en bra basordning
+                    const sortedInitialTeams = initialTeams.sort((a, b) => a.localeCompare(b));
+
+                    sortedInitialTeams.forEach(teamName => {
+                        const newDocRef = doc(teamsCollectionRef);
+                        batch.set(newDocRef, { 
+                            name: teamName, 
+                            createdAt: timestamp 
+                        });
+                    });
+
+                    await batch.commit();
+                    showToast("Förregistrerade lag tillagda i databasen!", 'success');
+                }
+            } catch (error) {
+                console.error("Error checking/initializing teams:", error);
+                showToast(`Kunde inte förregistrera lag: ${error.message}`, 'error');
+            }
+        }
+
+        // --- 2. Team Management and Listeners ---
+
+        // Real-time listener for teams
+        function listenForTeams() {
+            if (!db || !isAuthReady) return;
+
+            const q = query(collection(db, TEAMS_PATH));
+
+            onSnapshot(q, (snapshot) => {
+                const teams = [];
+                snapshot.forEach(doc => {
+                    teams.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sortera lagen alfabetiskt efter namn innan de renderas
+                teams.sort((a, b) => a.name.localeCompare(b.name));
+
+                renderTeamList(teams);
+                updateTeamSelects(teams);
+            }, (error) => {
+                console.error("Error listening to teams:", error);
+                showToast("Kunde inte ladda laglistan.", 'error');
+            });
+        }
+
+        // Render the list of teams on the left
+        function renderTeamList(teams) {
+            const list = document.getElementById('team-list');
+            list.innerHTML = '';
+            if (teams.length === 0) {
+                list.innerHTML = '<p class="text-sm text-gray-500 p-2 bg-gray-50 rounded-md">Inga lag tillagda.</p>';
+                return;
+            }
+            teams.forEach(team => {
+                const teamEl = document.createElement('div');
+                teamEl.className = 'flex justify-between items-center p-2 bg-blue-50 border border-blue-200 rounded-md shadow-sm';
+                teamEl.innerHTML = `<span class="font-medium text-blue-800">${team.name}</span>
+                                    <button onclick="removeTeam('${team.id}')" class="text-red-500 hover:text-red-700 text-sm">X</button>`;
+                list.appendChild(teamEl);
+            });
+        }
+        
+        // Populate the dropdowns in the score submission form
+        function updateTeamSelects(teams) {
+            const selects = ['team-a-select', 'team-b-select']; 
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                const currentValue = select.value; // Preserve selected value if possible
+                select.innerHTML = `<option value="">Välj Lag</option>`;
+                
+                teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.name;
+                    option.textContent = team.name;
+                    if (team.name === currentValue) {
+                         option.selected = true; // Restore selection
+                    }
+                    select.appendChild(option);
+                });
+            });
+
+            // Add change listeners to update display names and match result labels
+            document.getElementById('team-a-select').onchange = updateMatchDisplay;
+            document.getElementById('team-b-select').onchange = updateMatchDisplay;
+            updateMatchDisplay(); // Initial call
+        }
+
+
+        function updateMatchDisplay() {
+            const teamA = document.getElementById('team-a-select').value;
+            const teamB = document.getElementById('team-b-select').value;
+
+            // Update team names in the main submission section
+            document.getElementById('team-a-name-display').textContent = teamA || 'Lag 1';
+            document.getElementById('team-b-name-display').textContent = teamB || 'Lag 2';
+
+            // Update team names in the Match Result section
+            document.getElementById('match-teamA-name').textContent = teamA || 'Lag A';
+            document.getElementById('match-teamB-name').textContent = teamB || 'Lag B';
+        }
+        
+        // --- 3. CRUD Operations ---
+
+        async function addTeam(name) {
+            if (!db || !isAuthReady) return showToast("Databasen är inte klar.", 'error');
+            try {
+                await addDoc(collection(db, TEAMS_PATH), {
+                    name: name,
+                    createdAt: new Date()
+                });
+                showToast(`Laget '${name}' tillagt!`);
+            } catch (error) {
+                console.error("Error adding team:", error);
+                showToast(`Kunde inte lägga till lag: ${error.message}`, 'error');
+            }
+        }
+
+        window.removeTeam = async function(id) {
+            if (!db || !isAuthReady) return showToast("Databasen är inte klar.", 'error');
+            
+            // NOTE: In a real app, you must check if the team has scores before deleting.
+            try {
+                await deleteDoc(doc(db, TEAMS_PATH, id));
+                showToast("Lag borttaget.");
+            } catch (error) {
+                console.error("Error removing team:", error);
+                showToast(`Kunde inte ta bort lag: ${error.message}`, 'error');
+            }
+        }
+
+        async function handleScoreSubmission(event) {
+            event.preventDefault();
+            if (!db || !isAuthReady) return showToast("Databasen är inte klar.", 'error');
+
+            const form = event.target;
+            const teamA = form['team-a-select'].value;
+            const teamB = form['team-b-select'].value;
+            
+            // Get the selected match result radio button
+            const matchResultEl = form.querySelector('input[name="match_result"]:checked');
+
+            if (teamA === teamB) {
+                return showToast("Lag 1 och Lag 2 måste vara olika!", 'error');
+            }
+
+            if (!matchResultEl) {
+                 return showToast("Välj ett Matchresultat (Vinst/Oavgjort/Förlust)!", 'error');
+            }
+            
+            const resultValue = matchResultEl.value;
+            let teamAMatchWin = 0;
+            let teamBMatchWin = 0;
+
+            // Determine match win points based on selected result
+            if (resultValue === 'teamA_win') {
+                teamAMatchWin = 10;
+                teamBMatchWin = 0;
+            } else if (resultValue === 'teamB_win') {
+                teamAMatchWin = 0;
+                teamBMatchWin = 10;
+            } else if (resultValue === 'draw') {
+                teamAMatchWin = 5;
+                teamBMatchWin = 5;
+            }
+
+            const teamAScore = {
+                matchWin: teamAMatchWin, 
+                cheerPoints: parseInt(form['teamA_cheer'].value, 10),
+                spiritPoints: parseInt(form['teamA_spirit'].value, 10),
+                tifoPoints: parseInt(form['teamA_tifo'].value, 10), 
+                costumePoints: parseInt(form['teamA_costume'].value, 10), 
+                teamName: teamA
+            };
+
+            const teamBScore = {
+                matchWin: teamBMatchWin, 
+                cheerPoints: parseInt(form['teamB_cheer'].value, 10),
+                spiritPoints: parseInt(form['teamB_spirit'].value, 10),
+                tifoPoints: parseInt(form['teamB_tifo'].value, 10), 
+                costumePoints: parseInt(form['teamB_costume'].value, 10), 
+                teamName: teamB
+            };
+
+            const matchId = crypto.randomUUID();
+            const timestamp = new Date();
+            const scoresRef = collection(db, SCORES_PATH);
+
+            try {
+                const batch = writeBatch(db);
+                
+                // Score for Team A
+                const docRefA = doc(scoresRef);
+                batch.set(docRefA, { ...teamAScore, matchId, timestamp });
+                
+                // Score for Team B
+                const docRefB = doc(scoresRef);
+                batch.set(docRefB, { ...teamBScore, matchId, timestamp });
+
+                await batch.commit();
+
+                // Reset form and show message
+                form.reset();
+                updateMatchDisplay();
+                showToast(`Resultat för ${teamA} vs ${teamB} inrapporterat!`);
+
+            } catch (error) {
+                console.error("Error submitting score:", error);
+                showToast(`Kunde inte rapportera resultat: ${error.message}`, 'error');
+            }
+        }
+
+        // --- 4. Scoreboard Listener and Aggregation ---
+
+        function listenForScores() {
+            if (!db || !isAuthReady) return;
+            document.getElementById('loading-indicator').classList.remove('hidden');
+
+            const q = query(collection(db, SCORES_PATH));
+
+            onSnapshot(q, (snapshot) => {
+                const teamScores = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const team = data.teamName;
+                    
+                    if (!teamScores[team]) {
+                        teamScores[team] = {
+                            totalScore: 0,
+                            matchWin: 0,
+                            cheerPoints: 0,
+                            spiritPoints: 0,
+                            tifoPoints: 0, 
+                            costumePoints: 0, 
+                            name: team
+                        };
+                    }
+
+                    teamScores[team].matchWin += data.matchWin;
+                    teamScores[team].cheerPoints += data.cheerPoints;
+                    teamScores[team].spiritPoints += data.spiritPoints;
+                    teamScores[team].tifoPoints += data.tifoPoints; 
+                    teamScores[team].costumePoints += data.costumePoints; 
+
+                    teamScores[team].totalScore = (
+                        teamScores[team].matchWin + 
+                        teamScores[team].cheerPoints + 
+                        teamScores[team].spiritPoints +
+                        teamScores[team].tifoPoints + 
+                        teamScores[team].costumePoints 
+                    );
+                });
+                
+                // Sortera poängtavlan efter totalpoäng (högst till lägst)
+                const sortedScores = Object.values(teamScores).sort((a, b) => b.totalScore - a.totalScore);
+                renderScoreboard(sortedScores);
+                document.getElementById('loading-indicator').classList.add('hidden');
+
+            }, (error) => {
+                console.error("Error listening to scores:", error);
+                showToast("Kunde inte ladda poängtavlan.", 'error');
+                document.getElementById('loading-indicator').classList.add('hidden');
+            });
+        }
+
+        function renderScoreboard(scores) {
+            const tbody = document.getElementById('scoreboard-body');
+            tbody.innerHTML = '';
+
+            if (scores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">Inget resultat inrapporterat än.</td></tr>';
+                return;
+            }
+
+            scores.forEach((score, index) => {
+                const rank = index + 1;
+                const row = document.createElement('tr');
+                let rowClasses = 'hover:bg-blue-50';
+                
+                if (rank === 1) {
+                    rowClasses += ' bg-yellow-100 border-2 border-yellow-400 font-bold';
+                }
+
+                row.className = rowClasses;
+                row.innerHTML = `
+                    <td class="px-3 py-4 whitespace-nowrap text-sm ${rank === 1 ? 'text-yellow-700 text-lg' : 'text-gray-900'}">#${rank}</td>
+                    <td class="px-3 py-4 whitespace-nowrap text-sm font-medium ${rank === 1 ? 'text-yellow-800' : 'text-gray-900'}">${score.name}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-sm text-center">${score.matchWin}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-sm text-center">${score.cheerPoints}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-sm text-center">${score.spiritPoints}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-sm text-center">${score.tifoPoints}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-sm text-center">${score.costumePoints}</td>
+                    <td class="px-3 py-4 whitespace-nowrap text-lg text-center font-extrabold ${rank === 1 ? 'text-red-600' : 'text-blue-600'}">${score.totalScore}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // --- 5. Event Listeners Initialization ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup Firebase
+            setupFirebase();
+
+            // Add Team Form Listener
+            document.getElementById('add-team-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input = document.getElementById('team-name');
+                const teamName = input.value.trim();
+                if (teamName) {
+                    addTeam(teamName);
+                    input.value = '';
+                }
+            });
+
+            // Score Submission Form Listener
+            document.getElementById('score-submission-form').addEventListener('submit', handleScoreSubmission);
+        });
+
+    </script>
+</body>
+</html>
